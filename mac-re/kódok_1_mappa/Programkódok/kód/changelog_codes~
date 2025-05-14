@@ -1,0 +1,53 @@
+
+drift_ver.x.1.c
+
+
+ - 2013. 07. 06. 18:31
+	bug kikuszobolve: nyomasderivalt nullpontjat szamolo fuggveny nan-okat adott vissza
+		megoldas: 
+
+double find_zero(int i, double *rvec, double *dp) {
+
+	double r;
+	
+	if(((fabs(dp[i] + dp[i+1]) <= fabs(dp[i])) || (fabs(dp[i] + dp[i+1]) <= fabs(dp[i+1]))) && (dp[i] > dp[i+1])) {
+		r = find_r_zero(rvec[i],rvec[i+1],dp[i],dp[i+1]);
+		return r;
+
+	} else {
+		r = 0.0;
+		return r;
+	}
+	
+
+
+}
+
+
+	jo erteket ad vissza a laptopomon futtatva
+		--> ngrid = 10000				
+		    RMIN = 1.0
+		    RMAX = 100.0
+                    dt = 0.015
+		    PARTSIZE = 1.0cm --> MAKRÓ
+		    Dr_dze_i = 0.2
+		    Dr_dze_o = 0.5
+		    
+		--> gcc: gcc (Ubuntu/Linaro 4.6.3-1ubuntu5) 4.6.3
+
+	
+	tovabbi valtoztatas:
+	        --> makro:
+		        gamma = 0.0, vagy 2.0/7.0, ami a korong flaring index-e
+		    main-en belül:
+			body_rad_cm[i] = PARTSIZE;
+
+	 	    visc-en belül:
+			Dr_dze_i = pow(2.7,1+gamma) * asp_ratio * 2.0
+			Dr_dze_o = pow(15.,1+gamma) * asp_ratio * 2.0
+			nu = alpha_visc * alpha_r * asp_ratio * asp_ratio * pow(r,2.0*(1.0+gamma)) * kepler
+		
+	   	    find_r_annulus-on belül:
+			a nyomasderivalt 0 erteke koruli 1H tavolsagot adja ki! (az eddigi konstans ertekkel ellentetben!) A program alkalmas flaring disk vizsgalatara is!
+			if(rvec[i] > (rout - pow(rout,1+gamma) * asp_ratio) - DD / 2.0 && rvec[i] < (rout - pow(rout,1+gamma) * asp_ratio) + DD / 2.0) ...
+

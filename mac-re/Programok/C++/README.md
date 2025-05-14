@@ -1,0 +1,1 @@
+### Ez a program Süli Ároné, az 1D-s gáz fejlődését leíró egyenletet oldja meg c++-ban

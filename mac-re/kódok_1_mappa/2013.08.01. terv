@@ -1,0 +1,10 @@
+- drift
+- fragmentáció turbulencia miatt
+- fragmentáció drift miatt
+
+radiális porrészecske eloszlás -->
+  mind3 esetet meg kell nézni és kiválasztani az első lépésben a legkisebbet --> kiindulási populáció 
+  később a drift miatti korlát nem lényeges, mert kialakul a bump, ami már megfogja a drag-re érzékeny részecskéket
+  továbbiakban marad a másik 2, minden időlépésben megnézzük, hogy a fragmentációkból származó részecskeeloszlásban az adott helyen mekkora a maximális méret (mekkore az, amekkora még együtt tud maradni) és azzal számolunk tovább
+
+  futtatás, amíg be nem megy mind a csillagba és/vagy a nyomási maximumokba

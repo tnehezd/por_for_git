@@ -1,0 +1,51 @@
+/*	Itt vegzi el az integralast, ha szukseg van ra	*/
+void tIntegrate(char *nev, double *rvec, double *sigmavec, double *pressvec, double *dpressvec, double *ugvec) {
+
+	double TMAX = 150000.;
+	double L = 0;
+//	double deltat = time_step(rvec);
+
+	double deltat = 0.5;
+
+
+
+   	do {
+
+
+		double time = t / 2.0 / M_PI;
+
+		if((fmod(time, (TMAX/WO)) < deltat || time == 0) && L-time < deltat){
+
+
+
+/*	Az adatok kiirasahoz szukseges file-ok neveinek elmentese	*/
+				if (t==0) {
+					snprintf(dens_name,1024,"%s/surface.dat",nev);
+				} else {
+					if(optev == 1) {
+						snprintf(dens_name,1024,"%s/dens.%d.dat",nev,(int)L);
+					}
+				}
+
+				snprintf(dust_name,1024,"%s/dust.%i.dat",nev,(int)L);
+/*	Ha van tomegnovekedes, akkor a por feluletisurusegenek kiszamolasa itt tortenik	*/
+				Get_Sigmad(L,max,min,radius,radiusmicr,radiussec,sigmad,sigmadm,sigmads,massvec,massmicrvec,masssecvec,rdvec,rmicvec,rsvec);
+		
+				Print_Sigma(dens_name, rvec, sigmavec, pressvec, dpressvec);
+
+
+					L = L+(double)(TMAX/WO);
+
+				}
+
+		}
+
+
+	Get_Sigma_P_dP(rvec, sigmavec, pressvec, dpressvec, deltat);
+	t = t + deltat;	
+
+   	} while (t <= t_integration);
+
+
+
+}

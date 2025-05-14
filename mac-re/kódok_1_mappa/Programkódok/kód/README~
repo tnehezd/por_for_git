@@ -1,0 +1,10 @@
+A ps képekről:
+
+6 képet töltöttem fel, melyek a következők: r-0.5_inner, r-0.5_outer, r-1.5_inner, r-1.5_outer, r-1.0_inner, r-1.0_outer
+A file-ok a külső és belső deadzone edge-eken való tömegnövekedést ábrázolja a file-ok neveiben található diszk-profil alapján
+
+A belső tömegnövekedések mindhárom profil esetén elég látványosak, a külsők nem annyira szépek. De jól látható, hogy 1000 éves nagyságrendi skálán fogy ki mindkét hely esetén az utánpótlás. Az időskála persze a részecskék méretétől függ. Ami még érdekes számomra a növekedés "felfutásának" alakja. Látványos, hogy bizonyos profilok és részecskeméretek esetén a növekedés üteme gyorsul, míg mások esetén lassul ("domború" és "homorú" profilok).
+
+Sem az oszcillálást, sem az r^-1.5-ös profil esetén látható ENYHE lejtést nem tudom minek köszönhető. Megpróbálhatom kisebb lépésközzel számolni. (Ez igaz a külső zónára az r=1cm és 5cm-s részecskékre.)
+
+ÜDV!

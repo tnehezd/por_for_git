@@ -1,0 +1,5 @@
+set term gif giant animate size 450, 450 
+ set output 'temp.gif' 
+ n=100 
+ i=10 
+ load 'anim2.gnuplot' 

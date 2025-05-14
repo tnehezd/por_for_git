@@ -1,0 +1,8 @@
+set terminal postscript eps enhanced color font 'Helvetica,16'
+set output "sdens.eps"
+set ylabel "{\Symbol S}"
+set xlabel "R [AU]"
+
+set yrange [0:1.1]
+
+plot "./output/surface.dat" u 1:($2/7.57e-6) w l lw 2 lc "#031c1" title "t = t_0", "./output/dens.3000.dat" u 1:($2/7.57e-6) w l lw 2 lc "#053333" title "t = t_1", "./output/dens.6000.dat" u 1:($2/7.57e-6)  w l lc "#0e5454" lw 2 title "t = t_2", "./output/dens.9000.dat" u 1:($2/7.57e-6)   w l lw 2 lc "#147777" title "t = t_3"

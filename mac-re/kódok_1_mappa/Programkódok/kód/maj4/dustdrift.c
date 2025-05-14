@@ -1,0 +1,180 @@
+#include<stdio.h>
+#include<stdlib.h>
+#include<math.h>
+
+#define TWOPI       2.0*M_PI
+#define G           0.01720209895  	//Gaussian grav. constant
+#define STAR        1.0
+#define ALPHA		0.996
+#define SDCONV      1.12521e-7
+#define HASP		0.05
+#define AU2CM		1.496e13
+#define PDENSITY    3.0
+#define SUN2GR	    1.989e33
+
+int NV;
+
+
+void get_drag_acc(double body_radius, double x,double y,double z,double vx,double vy,double vz, double *adrag, double *dvx, double *dvy, double *dvz) {
+	
+	double G2, r, r2, sigma, rho0, rhogas, rhogas_cgs, lambda, mmol, sigmol, knud, csound, 
+	vkep, truan, vgas, ugas, ux, uy, uz, ldvx, ldvy, ldvz, delv, mach, ren, ceps, cstk, cdrag;                    
+	int index;
+	
+	mmol = 3.9e-24;
+	sigmol = 2.e-15;
+	
+	G2 = G*G;
+	
+	r2 = x*x + y*y + z*z;
+	r = sqrt(r2);
+	
+	sigma = 0.0001*pow(r,-0.5)/SDCONV; //ezt majd globalis fuggvenykent kell megirni valahol
+	
+	rho0 = sigma/(sqrt(TWOPI)*HASP*r*AU2CM);              // this is rho in 2-D 
+	rhogas = rho0*exp(-z*z/(2.0*HASP*HASP*r2));           // in g/cm^3
+	
+	
+	lambda  = (mmol/sigmol)/rhogas;                 // mean free-path, this is in cm  
+	knud   = 0.5*lambda/(body_radius);        // Knudsen number, if lamda and body_radius are in cm --> dimensionless
+	
+	vkep = sqrt(G2*STAR/r);                        // AU/day             
+	csound = vkep*HASP;                             // AU/day
+	
+	truan = atan2(y,x);
+	
+	vgas = ALPHA*vkep;
+	
+	ux =-vgas*sin(truan); // a gaz sebessege  
+	uy = vgas*cos(truan);
+	
+	ldvx  = vx - ux; // a reszecske es a gaz relativ sebessege
+	ldvy  = vy - uy;
+	ldvz  = vz;
+	
+	*dvx = ldvx;     // ez kell a mozgasegyenletekhez, ha mar kiszamoltuk...
+	*dvy = ldvy;
+	*dvz = ldvz;
+	
+	delv = sqrt(ldvx*ldvx + ldvy*ldvy + ldvz*ldvz);
+	
+	mach = delv/csound;  // dimensionless, both delv and csound are in AU/day
+	ren  = 6.0*(body_radius)*delv/(sqrt(8.0/M_PI)*csound*lambda); //dimensionless, both body_radius and lambda are in cm
+	ceps = 2.0*sqrt(1.0+128.0/(9.0*M_PI*mach*mach));
+	
+	if (ren <= 500.0) {
+		cstk = 24.0/ren+3.6*pow(ren,-0.313);     
+	} else if (ren <= 1500.0) {
+		cstk = 9.5e-5*pow(ren,1.397);       
+	} else {
+		cstk = 2.61;
+	}
+	
+	cdrag = (9.0*knud*knud*ceps+cstk)/((3.0*knud+1.0)*(3.0*knud+1.0));
+	*adrag = -3.0*rhogas*cdrag*delv/(8.0*PDENSITY*body_radius/AU2CM); //RHO bulk density of the planetesimal population   	
+}   
+
+
+
+void eqrhs(double m, double brad, double *y,double *dy)
+{
+	double r, r2, r3, r4, G2, adrag, dvx, dvy, dvz;
+	
+	G2 = G*G;
+	
+	r2 = y[0]*y[0]+y[1]*y[1]+y[2]*y[2];
+	r  = sqrt(r2);
+	r3 = r*r2;
+	
+	get_drag_acc(brad,y[0],y[1],y[2],y[3],y[4],y[5],&adrag,&dvx,&dvy,&dvz);
+	
+	//printf("ize... %lg %lg %lg %lg\n",adrag,dvx, dvy, dvz);
+	//getchar();
+	
+	dy[0]=y[3];
+	dy[1]=y[4];
+	dy[2]=y[5];
+	dy[3]=-G2*(STAR+m)*y[0]/r3 + adrag*dvx;
+	dy[4]=-G2*(STAR+m)*y[1]/r3 + adrag*dvy;
+	dy[5]=-G2*(STAR+m)*y[2]/r3 + adrag*dvz;
+	
+}
+
+void int_step(double m, double brad, double step, double *y, double *ynew) {
+
+	int n;
+	double dy1[NV],dy2[NV],dy3[NV],dy4[NV];
+	double ytemp[NV];
+	
+	
+	eqrhs(m,brad,y,dy1);
+	
+	for(n=0;n<NV;n++) ytemp[n]=y[n]+0.5*step*dy1[n];
+	eqrhs(m,brad,ytemp,dy2);
+	
+	for(n=0;n<NV;n++) ytemp[n]=y[n]+0.5*step*dy2[n];
+	eqrhs(m,brad,ytemp,dy3);
+	
+	for(n=0;n<NV;n++) ytemp[n]=y[n]+step*dy3[n];
+	eqrhs(m,brad,ytemp,dy4);
+	
+	for(n=0;n<NV;n++) ynew[n]=y[n]+step*(dy1[n]+2.0*dy2[n]+2.0*dy3[n]+dy4[n])/6.0;
+	
+}
+
+
+
+int main() {
+
+	double t, deltat, t_integration, BODY_RADIUS, prad3, mp, r;
+	int i;
+	NV = 6;
+	
+	double Y[NV], Y_NEW[NV];
+	
+	FILE *fout; 
+	fout = fopen("pormozgas.dat","w");
+	
+	
+	BODY_RADIUS = 200.0; // a porszemcse sugara cm-ben
+	
+	prad3 = BODY_RADIUS*BODY_RADIUS*BODY_RADIUS;
+		
+	mp = PDENSITY*4.0*M_PI/3.0*prad3/SUN2GR; //a reszecske kezdeti tomege naptomegben 
+	
+	r = 1.0; //a reszecske csillagtol valo tavolsaga AU-ban
+		
+	t = 0.0;
+	t_integration = 1000.0*365.25; //numerikus integralas idotartama
+	deltat = 0.01; //idolepes napban
+	Y[0] = r;
+	Y[1] = 0.0;
+	Y[2] = 0.0;
+	Y[3] = 0.0;
+	Y[4] = sqrt(G*G*(STAR+mp)/r);
+	Y[5] = 0.0;
+	
+	do {
+		
+		int_step(mp,BODY_RADIUS,deltat,Y,Y_NEW);
+		
+		for (i=0; i<NV; i++) Y[i] = Y_NEW[i]; 
+		
+		t = t + deltat;
+		
+		printf("ido: %lg  ev\n",t/365.2422);
+		//kiiratas fajlba, itt 1000 adatot irunk ki
+		//a fajl szerkezete: 1. oszlop az ido, 2. oszlop a reszecske tomege, 3. oszlop fosiktol
+		//mert tavolsaga
+		
+		if (sqrt(Y[0]*Y[0]+Y[1]*Y[1]+Y[2]*Y[2])<0.05) exit(0);
+		
+		if (fmod(t, (int)(t_integration / 1000.0)) < deltat || t == 0.0 ) { 
+			fprintf(fout,"%lg %lg\n",t/365.25,sqrt(Y[0]*Y[0]+Y[1]*Y[1]+Y[2]*Y[2]));
+			fflush(fout);
+		}
+	} while (t<t_integration);
+	
+	fclose(fout);
+	return 0;
+}

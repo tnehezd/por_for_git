@@ -1,0 +1,237 @@
+/****************************************************************/
+/*			   init_dust.ver.1.c			*/
+/****************************************************************/
+
+	2013. 11. 08. --> Zsolt kódja (eredeti: init_dust.c)
+
+	Egy adott méretű korongban minden gridbe rak egy porrészecskét. Az megkapja az adott körgyűrűben lévő por tömegét (azt képviseli - reprezentálja). A program továbbá kiszámolja az adott helyen az St = 1 (Stokes szám)-hoz tartozó méretet (azaz azt a részecskeméretet, amelyre maximális a beáramlás sebessége az adott távolságon).
+
+     A kimeneti file:  /* init_data.dat */
+	1. oszlop: a részecske sorszáma (-1)
+	2. oszlop: a csillagtól való távolsága (AU)
+	3. oszlop: az St = 1-hez tartozó részecskeméret (cm-ben)
+	4. oszlop: a részecske reprezentatív tömege (M_sun-ban)
+
+	my_rand():
+		Bemenet: -
+		Kimenet: random szám
+			Random generál számokat 0 és 1 között
+	
+	sigma_null():
+		Bemenet: -
+		Kimenet: sigma0 értéke
+			Adott korong tömeg, RMIN és RMAX, és szigma profil mellett kiszámolja szigmát r[0]-ban
+
+	sigmap_mmsn():
+		Bemenet: r
+		Kimenet: mmsn-hez igazítva a szigma_por értéke, ha hóhatárt teszünk be
+			Kiszámolja sigmát a hóhatárral Hayashi (1980) nyomán (?)
+
+	sigma_mmsn_cgs():
+		Bemenet: r
+		Kimenet: felületisűrűség cgs-ben
+			Átváltja a fenti függvényből származó értékeket cgs-be
+
+	sigmap_general():
+		Bemenet: r
+		Kimenet: por felületisűrűsége
+			Kiszámolja a por felületisűrűségét a hóhatárral
+
+	main():
+		Kiszámolja a porrészecskék reprezentatív tömegét, mértetét (Stokes = 1-ből), majd kiírja egy file-ba
+
+*********************	BUGOK	******************************
+
+	A *-gal jelöltek megoldva!
+	
+	* BUG01: -Wall kapcsolóval main függvény:
+		warning: return type defaults to ‘int’ [-Wreturn-type]
+	* BUG02: -Wall kapcsolóval sigmap_mmsn függvény:
+		warning: control reaches end of non-void function [-Wreturn-type]
+	* BUG03: -Wall kapcsolóval sigmap_mmsn függvény:
+		warning: control reaches end of non-void function [-Wreturn-type]
+
+		
+/****************************************************************/
+/*			   init_dust.ver.2.c			*/
+/*			     2013. 11. 28			*/
+/****************************************************************/
+
+****************	V1 BUG FIX	**********************
+
+	ver1 BUG01 kiküszöbölése:
+		int main() és a main visszatérési értékét meg kell adni: 
+			return 0;
+
+	ver1 BUG02 kiküszöbölése:
+		nem az if-en belül kell beírni a return-t:
+				
+			if (r <= 2.7) {
+				sigma0 = 10.0;
+				sigmap = sigma0*pow(r,SIGMAP_EXP)*SDCONV;	
+			} else {
+				sigma0 = 30.0;  //itt eredetileg ennel is nagyobb ugras van, az eredeti szorzotenyezo 4
+				sigmap = sigma0*pow(r,SIGMAP_EXP)*SDCONV;
+		    	}
+	
+			return sigmap;
+
+	ver1 BUG03 kiküszöbölése:
+		hasonlóan az előzőhöz az if-en kívül kell a return:
+
+		    	if (r <= SNOWLINE) {
+			       	sig_dust = DUST2GASR*sigma0*pow(r,SIGMAP_EXP);
+		    	} else {
+		        	sig_dust = DUST2GASR*sigma0*ICEFACTOR*pow(r,SIGMAP_EXP);
+			}
+
+		        return sig_dust;
+
+
+
+************	TOVÁBBI MÓDOSÍTÁSOK	**************
+
+	main(): módosítás
+		A korong paramétereit egy új file-ba kiírja a program. A kimeneti file: "disk_param.dat"
+			1. RMIN (AU)
+			2. RMAX (AU)
+			3. NGRID
+			4. a korong profiljának exponense
+			5. sigma0 (M_NAP / AU / AU)
+
+		Továbbá: kiírja, hogy elkészültek a file-ok (illetve nem írja ki a képernyőre a részecskék adatait)
+
+
+/****************************************************************/
+/*			   init_dust.ver.3.c			*/
+/*			       2013.11.28			*/
+/****************************************************************/
+	
+	Zsolt kódja (eredeti: init_dust3.c)
+
+************	MÓDOSÍTÁSOK	**************
+
+	#define ALPHA           0.01
+	#define STAR            1.0
+	#define G               0.01720209895  //Gaussian grav. constant
+	#define AUPDAY2CMPSEC   1.7314568e8    //conversion between the velocities 
+
+
+	a korábbiakhoz képest törölt függvények: sigmap_mmsn(), sigma_gas_mmsn_cgs(), sigmap_general(), my_rand()
+
+	alpha_turb(): új függvény
+		Bemenet: r
+		Kimenet: alfa paraméter
+			Kiszámolja az alfa értékét (akár a csökkentettet is)
+	
+	sigma_null(): módosítás
+		Bemenet: - 
+		Kimenet: sigma0
+			"Kézzel beírt" értéket ad vissza
+
+	sigma_gas(): új függvény
+		Bemenet: r
+		Kimenet: sigma értéke
+			Kiszámolja a sigma értékét r függvényében
+
+	sigma_dust(): új függvény
+		Bemenet: r
+		Kimenet: sigma_por
+			Kiszámolja a por felületisűrűségét, a hóhatáron való ugrással együtt
+
+	find_min(): új függvény
+		Bemenet: 3 szám
+		Kimenet: minimum érték
+			Kiszámolja, hogy a három szám közül melyik a legkisebb
+
+	main(): módosítás
+		új változók:
+			double DD, reval2;
+  			double f_drift, f_frag, u_frag, u_frag2, G2, v_kep, c_s, v_kep2, c_s2, Sigma, Sigma_cgs, P, dPdr, dlnPdlnr, rho_p, s_drift, s_frag, s_df;
+			double s_max;
+
+		törölve: delta_r
+
+		új képletek Birnstiel et al 2012 alapján:
+
+			f_drift = 0.55;
+  			f_frag  = 0.37;
+  
+  			rho_p = 1.6;    // g/cm^3
+  			u_frag = 1000.0; // cm/s 
+  			u_frag = u_frag/AUPDAY2CMPSEC; //u_frag CsE/nap mertekegysegben
+  			u_frag2 = u_frag * u_frag;
+
+			reval2 = reval*reval;
+       			G2 = G*G;
+       			H = reval*HASP;
+       			v_kep = sqrt(G2*STAR/reval);  
+                                       
+	   		c_s = v_kep*HASP;
+        
+       			v_kep2 = v_kep * v_kep;
+       			c_s2 = c_s * c_s;
+       
+	   		Sigma = sigma_gas(reval);
+	   		P = HASP*G2*STAR*Sigma/(sqrt(2.0*M_PI)*reval2);
+	   		dPdr = (SIGMAP_EXP-2)*pow(reval,(SIGMAP_EXP-3.0))*HASP*G2*STAR*sigma_null()/sqrt(2.0*M_PI);
+	  
+	   		dlnPdlnr = reval/P * dPdr;
+	  
+	  		Sigma_cgs = sigma_gas(reval)/SDCONV;
+
+	       		// 1. radialis drift altal meghatarozott maximalis meret
+       			s_drift = f_drift * 2.0/M_PI * Sigma_cgs/(100.0*rho_p) * v_kep2/c_s2 * fabs(1.0/dlnPdlnr);
+       
+       			// 2. a kis skalaju turbulencia altal okozott fragmentacio szerinti maximalis meret
+       			s_frag = f_frag * 2.0/(3.0*M_PI) * Sigma_cgs/(rho_p*alpha_turb(reval)) * u_frag2/c_s2;
+       			//s_frag = f_frag * 2.0/(3.0*M_PI) * Sigma_cgs/(rho_p*ALPHA) * u_frag2/c_s2;
+       			// 3. radialis drift altal okozott fragmentacio szerinti maximalis meret
+       			s_df = u_frag*v_kep/fabs(dlnPdlnr*c_s2*0.5) * 2.0*Sigma_cgs/(M_PI*rho_p);
+
+       			s_max = find_min(s_drift,s_frag,s_df);
+
+
+/****************************************************************/
+/*			   init_dust.ver.4.c			*/
+/*			       2013.11.29			*/
+/****************************************************************/
+
+************	MÓDOSÍTÁSOK	**************
+
+	G = 1.-el számol!
+
+	új makrók:
+		#define G2			G*G
+		#define CMPSECTOAUPYRP2PI	3.35725e-07	//conversion between the velocities
+		#define GRPCM32MSUNAU3		1.68329e6
+
+	globális változók:
+		double r_dze_i = 2.7;
+		double Dr_dze_i= 0.27;
+		double r_dze_o = 15.0;
+		double Dr_dze_o= 1.5;
+		double a_mod = 0.01;
+
+	sigma_dust(): módosítás
+		Bemenet: r
+		Kimenet: a por felületisűrűsége
+			A hóhatárt most nem veszi figyelembe a program
+				sig_dust = sigma0 * pow(r,SIGMAP_EXP) * DUST2GASR;
+
+	main(): módosítás
+		új változó: 
+			double H, Sigmad_cgs, rho_mp
+		törölt változó:
+			G2
+
+		u_frag = u_frag * CMPSECTOAUPYRP2PI; 	/*	cm/sec --> AU / (yr/2pi)	*/
+     		H = reval * HASP;
+		Sigmad_cgs = sigma_dust(reval) / SDCONV;
+		rho_mp = 1. / sqrt(2. * M_PI) * Sigma / H;
+		P = rho_mp * c_s * c_s;
+       		s_drift = f_drift * 2.0 / M_PI * Sigmad_cgs/rho_p * v_kep2 / c_s2 * fabs(1.0 / dlnPdlnr);
+
+	       	fprintf(fout2,"%lg %lg %d %lg %lg %lg %lg %lg %lg %lg %lg\n",RMIN, RMAX, NGRID, SIGMAP_EXP, sigma_null(), G, r_dze_i, r_dze_o, Dr_dze_i, Dr_dze_o, a_mod);
+
+  		printf("A korong parametereit tartalmazo file elkeszult (disk_param.dat) \n\n A file tartalma: \n RMIN, RMAX, NGRID, a profil kitevoje (SIGMAP_EXP), és sigma0 (M_Sun / AU / AU), G (gravit. konst), a belso deadzone hatara (AU), az atmenet vastagsaga (AU), a deadzone hatara (AU), az atmenet vastagsaga (AU) \n\n");   

@@ -1,0 +1,297 @@
+#include<stdio.h>
+#include<math.h>
+#include<stdlib.h>
+
+#define G 		0.01720209895			/*	Gaussian-grav const in astron. units		*/
+#define G2		G*G
+#define GCGS		6.674e-8			/*	Gaussian-grav const in CGS			*/
+#define	GCGS2		GCGS*GCGS
+#define AU2CM		1.496e13			/*	1 AU --> 1 cm					*/
+#define asp_ratio 	0.05				/*	aspect ratio					*/
+
+#define MMOL		3.9e-24
+#define SIGMOL		2.0e-15
+#define PDENSITY    	3.0
+#define CBODY		1.0				/*	central body mass in solar units		*/
+#define GCM2MSAU	1.125211e-7			/*	g/cm2 --> M_Sun/AU2				*/
+#define	DDENSASTR2CGS	7.95890e-17			/*	deriv p: M_Sun/day/day/AU/AU/AU --> g/s/s/m/m/m	*/
+#define M_SOL		1.9891e33			/*	mass of Sun in gramms				*/
+
+#define filenev		"dens_558000.dat"
+
+
+int NV;
+
+FILE *filebe, *fildrag, *outcgs;
+
+int Sorokszama(int numout){
+
+	char c;
+	filebe = fopen(filenev,"r+");		
+	numout = 0;
+
+/*	Az init.dat file megnyitasa es a sorok szamanak kiolvasasa while ciklussal	*/
+
+		while((c = fgetc(filebe)) != EOF)				
+/*	a file vegeig (EOF) keresse a c karakternek megadott '\n' sortorest: 		*/
+			if(c == '\n')
+				numout++;					
+/*	amig talal sortorest, leptesse a lines integert					*/
+	fclose(filebe);				
+	return numout;
+
+}
+
+
+void load_r_sigma_dp(int num, double *rvec, double *sigmavec, double *dpressvec, double *DD, double *RMIN, double *RMAX) {
+		
+	int i;
+	double temp[num];
+
+	filebe = fopen(filenev,"r+");
+
+	for (i=0;i<num;i++){ 
+/*	file-bol beolvasas: r,sigma,dp	*/
+		fscanf(filebe, "%lf %lf %lf %lf",&rvec[i],&sigmavec[i],&temp[i],&dpressvec[i]); 
+//		printf("%i %lg %lg %lg\n",i,rvec[i],sigmavec[i],dpressvec[i]);
+	}
+	fclose(filebe);
+
+	*DD = rvec[1] - rvec[0];
+	*RMIN = rvec[0];
+	*RMAX = rvec[num-1];
+
+}
+
+
+void r_sigma_dp_to_cgs(int num, double *rvec, double *sigmavec, double *dpressvec, double DD, double RMIN, double RMAX, double *rvec_cgs, double *sigmavec_cgs, double *dpressvec_cgs, double *DD_cgs, double *RMIN_cgs, double *RMAX_cgs) {
+
+	int i;
+	outcgs = fopen("cgs.dat","w");
+
+	for (i = 0; i < num; i++) {
+
+		rvec_cgs[i] = rvec[i] * AU2CM;
+		sigmavec_cgs[i] = sigmavec[i] / GCM2MSAU;
+		dpressvec_cgs[i] = dpressvec[i] * DDENSASTR2CGS;
+		fprintf(outcgs,"%lg %lg %lg\n",rvec_cgs[i],sigmavec_cgs[i],dpressvec_cgs[i]);
+
+	}
+
+	fclose(outcgs);
+
+	*DD_cgs = DD * AU2CM;
+	*RMIN_cgs = RMIN * AU2CM;
+	*RMAX_cgs = RMAX * AU2CM;
+
+}
+
+
+double rho_midplane(double localsigmacgs, double rcgs) {
+
+	return (localsigmacgs / (sqrt(2.0 * M_PI) * asp_ratio * rcgs));              		/*	this is rho in the midplane of the disk	*/
+
+}
+
+/*
+double rho_gas(double localsigmacgs, double r, double z) {
+
+	double rho0;
+	rho0 = rho_midplane(localsigmacgs,r);
+	return (rho0 * exp(-z * z / (2.0 * asp_ratio * asp_ratio * r * r)));           		/*	in g/cm^3 -- itt bevezettuk a z-tol valo fuggest, ugyanis a por-reszecske elhagyhatja a korongot	*/
+/*
+}
+
+
+/*	mean free-path in cm	*/
+/*double lambda(double localsigma, double r, double z) {
+
+	return (MMOL / SIGMOL) / rho_gas(localsigma,r,z);
+
+}
+
+
+
+double Knudsen(double body_radius, double localsigma, double r, double z) {			/*	Knudsen number, if lamda and body_radius are in cm --> dimensionless		*/
+
+/*	return (0.5 * lambda(localsigma,r,z) / (body_radius * AU2CM));
+
+}
+
+
+double v_kepler_cgs(double r) {
+
+	double vkep;
+	vkep = sqrt(G2 * CBODY / r);								/*	v_kepler in AU/day	*/
+/*	return (vkep * AU2CM / 86400.0);							/*	v_kepler in cm/s	*/
+ /*
+}
+
+
+double speed_of_sound(double r) {
+	
+	return v_kepler_cgs(r) * asp_ratio;
+	
+}
+
+
+double Mach_number(double r, double delv) {							/*	dimensionless, both delv and csound are in AU/day		*/
+/*
+	return (delv / speed_of_sound(r));
+
+}
+
+
+double Reynolds_number(double r, double delv, double body_radius, double localsigma, double z) {	/*	dimensionless, both body_radius and lambda are in cm	*/
+/*
+	return (6.0 * (body_radius * AU2CM) * delv / (sqrt(8.0 / M_PI) * speed_of_sound(r) * lambda(localsigma,r,z)));
+
+}
+
+
+double Epstein_coeff(double r, double delv) {
+
+	return (2.0 * sqrt(1.0 + 128.0 / (9.0 * M_PI * Mach_number(r,delv) * Mach_number(r,delv))));
+
+}
+
+
+double Stokes_coeff(double body_radius, double delv, double r, double localsigma, double z) {
+
+	double cstk,ren;
+	
+	ren = Reynolds_number(r,delv,body_radius,localsigma,z);  
+
+     	if (ren <= 500.0) {
+         	cstk = 24.0 / ren + 3.6 * pow(ren,-0.313);     
+     	} else 
+
+   
+     	if (ren <= 1500.0) {
+         	cstk = 9.5e-5 * pow(ren,1.397);       
+     	} else {
+         	cstk = 2.61;
+     	}
+
+	return cstk;	
+
+}
+   
+
+double Drag_Coeff(double body_radius, double delv, double r, double localsigma, double z) {         
+
+	double knud,ceps,cstk;
+	knud = Knudsen(body_radius,localsigma,r,z);
+	ceps = Epstein_coeff(r,delv);
+	cstk = Stokes_coeff(body_radius,delv,r,localsigma,z);
+	return (9.0 * knud * knud * ceps + cstk) / ((3.0 * knud + 1.0) * (3.0 * knud + 1.0));
+}
+
+
+
+
+
+/*Olyan fuggveny kell, mely kiszamolja a gaz surlodasi erot. Ehhez kell a gaz sebessege, a reszecske sebesseget szamolja a kettest-problemas program,
+a ketto kulonbsege pedig a reszecske gazhoz viszonyitott relativ sebessege. 
+
+A gaz sebessegehez kell nekunk a nyomas tavolsag szerinti derivaltja a jolismert egyenlet szerint:
+
+(lasd papir )
+*/
+
+/*
+void get_drag_acceleration(double body_radius, int body_index, double x, double y, double z, double vx, double vy, double vz, double *adrag, double *dvx, double *dvy, double *dvz, double *rvec, double *sigmavec, double *dpressvec, double DD, double RMIN)  {
+/*	body_radius: a reszecske sugara; body_index:ez a reszecskek tomeget/sugarat tartalmazo tombbeli index; x,y,z,vx,vy,vz: a reszecske hely es sebesseg koordinatai a csillaghoz viszonyitva; adrag: a gaz surlodasbol szarmazo gyorsulas; dvx,dvy,dvz: a reszecskenek a gazhoz viszonyitott sebessege	*/
+                           
+  /*   	double r, r2, rmid, rindex, coef1, sigma, sigma_cgs, coef2, press, coef3, coef4, alpha, dpdr, rho0_cgs, rhogas_cgs, ugas, ux, uy, uz, ldvx, ldvy, ldvz, delv, index_factor, vkep,rhogas,cdrag;                    
+     	int index;
+     
+   
+     	r2 = x * x + y * y + z * z;				/*	r^2	*/
+    /* 	r = sqrt(r2);
+
+     	rmid = (r - RMIN)/DD;     				/* 	the integer part of this gives at which index is the body	*/
+     /*	index = (int) floor(rmid);				/* 	ez az rmid egesz resze						*/
+    /* 	rindex = rvec[index];       				/* 	the corresponding r, e.g rd[ind] < r < rd[ind+1]		*/
+
+     /*	coef1 = (sigmavec[index+1]-sigmavec[index])/DD;      	/*	ez az alabbi ket sor a linearis interpolacio - remelem, jo!!!	*/
+/*     	sigma = sigmavec[index]+coef1*(r-rindex);          	/*	g/cm^2	*/
+
+/*     	coef3 = (dpressvec[index+1]-dpressvec[index])/DD; 	/*	ugyanaz az interpolacio a nyomas derivaltjara			*/
+/*     	dpdr  = dpressvec[index]+coef3*(r-rindex);
+
+	rhogas = rho_gas(sigma,r,z);
+
+/*	a gaz sebessege a nyomas jelenleteben a rendszerben	*/
+/*     	ugas = sqrt(v_kepler_cgs(r) * v_kepler_cgs(r) + r*dpdr/rhogas);  		/* 	second term in cm^2/sec^2, ugas in cm/sec			*/
+
+     
+  /*   	ugas = ugas*(86400.0/AU2CM);             		/* 	conversion back to AU/day units					*/
+
+     
+    /* 	ux =-ugas*y/r; // a gaz sebessege 
+     	uy = ugas*x/r;
+     	uz = 0.0;
+
+       
+     	ldvx  = vx - ux; // a reszecske es a gaz relativ sebessege 
+     	ldvy  = vy - uy;
+     	ldvz  = vz - uz;
+
+     
+     	*dvx = ldvx;     // ez kell a mozgasegyenletekhez, ha mar kiszamoltuk...
+     	*dvy = ldvy;
+     	*dvz = ldvz;
+
+            
+     	delv = sqrt(ldvx*ldvx + ldvy*ldvy + ldvz*ldvz);
+
+	cdrag = Drag_Coeff(body_radius,delv,r,sigma,z);
+
+   	*adrag = -3.0 * rhogas * cdrag * delv / (8.0 * PDENSITY * body_radius); //RHO bulk density of the planetesimal population   
+
+} 
+
+/*
+
+ for(i=1;i<=imax;i++)
+  {
+   j = i-1;
+   r=rmin+(i-1)*dr;
+   Sigma[j]= u[i]/Func_nu( r )/SDCONV;
+   Density[j] = 1.0/(sqrt(2.0*M_PI))*Sigma[j]/(Asp_Ratio*r*AU2CM);
+   csound = Asp_Ratio*k_gauss*sqrt(CBODY/r);
+   csound_cgs = csound*AU2CM/86400.0;
+   Pressure[j] = Density[j]*csound_cgs*csound_cgs;
+  }
+
+*/
+
+
+int main() {
+
+	double t, deltat, t_integration, BODY_RADIUS, prad3, mp, DD, RMIN, RMAX, adrag, dvx, dvy, dvz,body_radius,x,y,z,vx,vy,vz,DD_cgs, RMIN_cgs, RMAX_cgs;
+	int i,num,linesout,count,body_index;
+	NV = 6;
+	linesout = 0;
+	num = 0;
+	count = 0;
+
+	num = Sorokszama(linesout);			/*	A file sorainak szama elmentve egy integerbe	*/
+	
+	double Y[NV], Y_NEW[NV], sigmavec[num], rvec[num], dpressvec[num], sigmavec_cgs[num], rvec_cgs[num], dpressvec_cgs[num],rho;
+
+	load_r_sigma_dp(num,rvec,sigmavec,dpressvec,&DD,&RMIN,&RMAX);
+	r_sigma_dp_to_cgs(num,rvec,sigmavec,dpressvec,DD,RMIN,RMAX,rvec_cgs,sigmavec_cgs,dpressvec_cgs,&DD_cgs,&RMIN_cgs,&RMAX_cgs);
+
+	for(i = 0; i < num; i++) {
+		rho = rho_midplane(sigmavec_cgs[i], rvec_cgs[i]);
+//		printf("%lg \n",rho);
+	}
+
+
+//	get_drag_acceleration(body_radius,body_index,x,y,z,vx,vy,vz,&adrag,&dvx,&dvy,&dvz,rvec,sigmavec,dpressvec,DD,RMIN);
+
+	return 0;
+
+}
