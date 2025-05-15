@@ -1,0 +1,1 @@
+/usr/bin/c++     CMakeFiles/1D_drift.dir/apps/main.cpp.o  -o 1D_drift -Wl,-rpath,/home/buba/Dokumentumok/Doktori/1D_por/lib lib/libdustdrift.so 

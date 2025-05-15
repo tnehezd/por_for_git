@@ -1,0 +1,28 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/buba/Dokumentumok/Doktori/1D_por/src/iterate.cpp
+iterate.h
+/home/buba/Dokumentumok/Doktori/1D_por/src/iterate.h
+define.h
+/home/buba/Dokumentumok/Doktori/1D_por/src/define.h
+numerics.h
+/home/buba/Dokumentumok/Doktori/1D_por/src/numerics.h
+iostream
+-
+math.h
+/home/buba/Dokumentumok/Doktori/1D_por/src/math.h
+iomanip
+-
+
+include/define.h
+
+include/iterate.h
+
+include/numerics.h
+

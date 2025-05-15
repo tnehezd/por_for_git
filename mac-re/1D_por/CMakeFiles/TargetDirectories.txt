@@ -1,0 +1,4 @@
+/home/buba/Dokumentumok/Doktori/1D_por/CMakeFiles/rebuild_cache.dir
+/home/buba/Dokumentumok/Doktori/1D_por/CMakeFiles/edit_cache.dir
+/home/buba/Dokumentumok/Doktori/1D_por/CMakeFiles/1D_drift.dir
+/home/buba/Dokumentumok/Doktori/1D_por/CMakeFiles/dustdrift.dir

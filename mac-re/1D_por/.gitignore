@@ -1,7 +1,0 @@
-CMakeFiles/*
-*.cmake
-CMakeCache.txt
-Makefile
-1D_drift
-out/*
-lib/*

@@ -1,0 +1,20 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/buba/Dokumentumok/Doktori/1D_por/src/define.cpp
+define.h
+/home/buba/Dokumentumok/Doktori/1D_por/src/define.h
+
+/home/buba/Dokumentumok/Doktori/1D_por/src/kepler.cpp
+kepler.h
+/home/buba/Dokumentumok/Doktori/1D_por/src/kepler.h
+
+include/define.h
+
+include/kepler.h
+

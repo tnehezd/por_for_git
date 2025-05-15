@@ -1,0 +1,1 @@
+/usr/bin/c++ -fPIC   -shared -Wl,-soname,libdefine.so -o lib/libdefine.so CMakeFiles/define.dir/src/define.cpp.o 
