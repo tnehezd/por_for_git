@@ -7,5 +7,5 @@ python:
   install: false  # ez kikapcsolja a pip install-t
 
 build:
-  image: latest
+  image: ubuntu-22.04
 
